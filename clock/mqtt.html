@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#202020">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="倒數計時">
+  <title>倒數計時顯示端</title>
+  <link rel="stylesheet" href="../assets/styles.css">
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body class="clock-body">
+  <div class="clock-status" id="clockStatus">Offline</div>
+  <main class="clock-shell">
+    <section class="clock-stage" aria-label="倒數計時翻頁時鐘">
+      <div class="clock-title" id="clockTitle">倒數時間總計 10:00</div>
+      <div class="flip-row" aria-label="目前倒數時間">
+        <div class="flip-card" data-digit="0"><span class="flip-digit">0</span></div>
+        <div class="flip-card" data-digit="1"><span class="flip-digit">0</span></div>
+        <div class="flip-separator" aria-hidden="true"><span></span><span></span></div>
+        <div class="flip-card" data-digit="2"><span class="flip-digit">1</span></div>
+        <div class="flip-card" data-digit="3"><span class="flip-digit">0</span></div>
+        <div class="flip-separator" aria-hidden="true"><span></span><span></span></div>
+        <div class="flip-card" data-digit="4"><span class="flip-digit">0</span></div>
+        <div class="flip-card" data-digit="5"><span class="flip-digit">0</span></div>
+      </div>
+      <div class="clock-message" id="clockMessage">等待倒數命令</div>
+    </section>
+  </main>
+  <script src="../assets/clock.js"></script>
+</body>
+</html>
