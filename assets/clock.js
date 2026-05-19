@@ -226,6 +226,18 @@ function stopCountdown() {
   els.message.textContent = "倒數已停止";
 }
 
+function resumeCountdown() {
+  if (state.remainingSeconds <= 0) {
+    els.message.textContent = "時間已到";
+    updateDigits();
+    return;
+  }
+  state.running = true;
+  state.lastTickAt = performance.now();
+  els.message.textContent = "倒數接續中";
+  updateDigits();
+}
+
 function resetCountdown() {
   state.running = false;
   state.remainingSeconds = state.totalSeconds;
@@ -239,6 +251,7 @@ function handleCommand(payload) {
   if (command === "config") applyConfig(payload);
   if (command === "start") startCountdown(payload);
   if (command === "stop") stopCountdown();
+  if (command === "resume") resumeCountdown();
   if (command === "interrupt_stop") {
     if (payload.message) els.message.textContent = payload.message;
     beepSequence(Math.max(1, Math.min(20, Number.parseInt(payload.beeps, 10) || 10)));
