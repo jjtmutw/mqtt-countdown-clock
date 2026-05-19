@@ -325,7 +325,7 @@ h1 {
 .clock-stage {
   height: 100%;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-rows: minmax(1.25em, 1fr) auto minmax(1.25em, 1fr);
   align-items: center;
   justify-items: center;
   gap: clamp(18px, 4.2svh, 52px);
@@ -341,7 +341,7 @@ h1 {
   max-width: 100%;
   color: #d1d1d1;
   font-weight: 950;
-  line-height: 0.9;
+  line-height: 1.12;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -351,11 +351,13 @@ h1 {
 .clock-title {
   align-self: end;
   font-size: clamp(32px, 6.5vw, 88px);
+  padding-block: 0.08em;
 }
 
 .clock-message {
   align-self: start;
   font-size: clamp(28px, 5.8vw, 78px);
+  padding-block: 0.08em;
 }
 
 .flip-row {
