@@ -205,7 +205,9 @@ document.querySelector("#startButton").addEventListener("click", () => {
   publish({ type: "start", totalSeconds: Math.max(1, getTotalSeconds()), message: els.message.value.trim() });
 });
 document.querySelector("#stopButton").addEventListener("click", () => publish({ type: "stop" }));
-document.querySelector("#resumeButton").addEventListener("click", () => publish({ type: "resume" }));
+document.querySelector("#resumeButton").addEventListener("click", () => {
+  publish({ type: "start", resume: true, message: "倒數接續中" });
+});
 document.querySelector("#interruptButton").addEventListener("click", () => {
   publish({ type: "interrupt_stop", beeps: 10, message: "請停止" });
 });

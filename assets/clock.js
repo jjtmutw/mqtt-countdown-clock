@@ -249,7 +249,13 @@ function resetCountdown() {
 function handleCommand(payload) {
   const command = typeof payload === "string" ? payload.trim().toLowerCase() : payload.type;
   if (command === "config") applyConfig(payload);
-  if (command === "start") startCountdown(payload);
+  if (command === "start") {
+    if (payload.resume) {
+      resumeCountdown();
+    } else {
+      startCountdown(payload);
+    }
+  }
   if (command === "stop") stopCountdown();
   if (command === "resume") resumeCountdown();
   if (command === "interrupt_stop") {
