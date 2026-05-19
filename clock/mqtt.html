@@ -4,15 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#202020">
+  <meta name="color-scheme" content="dark">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="倒數計時">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>倒數計時顯示端</title>
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icon.svg">
   <link rel="stylesheet" href="../assets/styles.css">
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body class="clock-body">
   <div class="clock-status" id="clockStatus">Offline</div>
+  <button class="install-button" id="installButton" type="button">全螢幕</button>
   <main class="clock-shell">
     <section class="clock-stage" aria-label="倒數計時翻頁時鐘">
       <div class="clock-title" id="clockTitle">倒數時間總計 10:00</div>

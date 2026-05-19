@@ -1,7 +1,9 @@
-const params = new URLSearchParams(window.location.search);
+const PARAM_STORAGE_KEY = "mqtt-countdown-clock-params-v1";
+const params = getLaunchParams();
 
 const els = {
   status: document.querySelector("#clockStatus"),
+  installButton: document.querySelector("#installButton"),
   title: document.querySelector("#clockTitle"),
   message: document.querySelector("#clockMessage"),
   cards: [...document.querySelectorAll("[data-digit]")]
@@ -20,8 +22,22 @@ const state = {
   ],
   triggeredWarnings: new Set(),
   finishBeeps: 6,
-  audioContext: null
+  audioContext: null,
+  installPrompt: null
 };
+
+function getLaunchParams() {
+  const current = new URLSearchParams(window.location.search);
+  const mqttValue = current.get("mqtt");
+  const topicValue = current.get("topic");
+
+  if (mqttValue || topicValue) {
+    localStorage.setItem(PARAM_STORAGE_KEY, current.toString());
+    return current;
+  }
+
+  return new URLSearchParams(localStorage.getItem(PARAM_STORAGE_KEY) || "");
+}
 
 function normalizeBroker(value) {
   const raw = (value || "").trim();
@@ -68,6 +84,64 @@ function updateDigits() {
 function setStatus(online, text) {
   els.status.classList.toggle("online", online);
   els.status.textContent = text;
+}
+
+async function requestDisplayMode() {
+  ensureAudio();
+
+  if (state.installPrompt && !isStandaloneDisplay()) {
+    await state.installPrompt.prompt();
+    state.installPrompt = null;
+    els.installButton.textContent = "全螢幕";
+    return;
+  }
+
+  if (document.fullscreenElement) return;
+
+  try {
+    await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+    await lockLandscapeOrientation();
+  } catch {
+    // Fullscreen needs a trusted tap and may be blocked by some browsers.
+  }
+}
+
+async function lockLandscapeOrientation() {
+  try {
+    if (screen.orientation?.lock) {
+      await screen.orientation.lock("landscape");
+    }
+  } catch {
+    // Orientation lock is optional across browsers.
+  }
+}
+
+function setupPwaMode() {
+  if (isStandaloneDisplay()) {
+    document.documentElement.classList.add("is-standalone");
+    els.installButton.textContent = "全螢幕";
+    return;
+  }
+
+  if (isMobileViewport()) {
+    els.installButton.textContent = "加入主畫面";
+  }
+}
+
+function isStandaloneDisplay() {
+  return window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: fullscreen)").matches ||
+    window.navigator.standalone === true;
+}
+
+function isMobileViewport() {
+  return window.matchMedia("(max-width: 820px)").matches ||
+    /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent);
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("../service-worker.js").catch(() => {});
 }
 
 function ensureAudio() {
@@ -239,7 +313,27 @@ function connect() {
 
 document.addEventListener("pointerdown", ensureAudio, { once: true });
 document.addEventListener("keydown", ensureAudio, { once: true });
+els.installButton.addEventListener("click", requestDisplayMode);
 
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  state.installPrompt = event;
+  if (!isStandaloneDisplay()) {
+    els.installButton.textContent = "加入主畫面";
+  }
+});
+
+window.addEventListener("appinstalled", () => {
+  state.installPrompt = null;
+  els.installButton.textContent = "全螢幕";
+});
+
+window.addEventListener("load", () => {
+  setupPwaMode();
+  registerServiceWorker();
+});
+
+setupPwaMode();
 updateTitle();
 updateDigits();
 connect();

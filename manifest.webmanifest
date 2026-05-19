@@ -1,0 +1,19 @@
+{
+  "name": "MQTT 倒數計時顯示端",
+  "short_name": "倒數計時",
+  "description": "以 MQTT 接收命令並用全螢幕翻頁時鐘顯示倒數時間。",
+  "start_url": "./clock/mqtt.html?display=standalone",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#202020",
+  "theme_color": "#202020",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -30,6 +30,15 @@ ws://xx.xx.xx.xx:9001
 clock/mqtt.html?mqtt=wss://broker.emqx.io:8084/mqtt&topic=jj/countdown
 ```
 
+## Add To Home Screen
+
+平板顯示端已支援 PWA 加入主畫面與全螢幕啟動：
+
+- Android Chrome/Edge：開啟 `clock/mqtt.html` 顯示端網址後，按右上角「加入主畫面」或瀏覽器選單的「安裝應用程式」。
+- iPad/iPhone Safari：開啟顯示端網址後，用分享選單選「加入主畫面」。
+- 從主畫面開啟時會使用 `manifest.webmanifest` 的 `display: fullscreen` 與橫向顯示設定。
+- 顯示端會記住最近一次網址中的 `mqtt`、`topic`、`user`、`pass` 參數；從主畫面啟動若沒有 query，會沿用上次設定。
+
 ## MQTT Commands
 
 手機控制端會送出 JSON 到指定 topic：
