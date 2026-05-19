@@ -239,6 +239,10 @@ function handleCommand(payload) {
   if (command === "config") applyConfig(payload);
   if (command === "start") startCountdown(payload);
   if (command === "stop") stopCountdown();
+  if (command === "interrupt_stop") {
+    if (payload.message) els.message.textContent = payload.message;
+    beepSequence(Math.max(1, Math.min(20, Number.parseInt(payload.beeps, 10) || 10)));
+  }
   if (command === "reset") resetCountdown();
   if (command === "message" && payload.message) els.message.textContent = payload.message;
 }

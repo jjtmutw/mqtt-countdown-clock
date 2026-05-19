@@ -205,6 +205,9 @@ document.querySelector("#startButton").addEventListener("click", () => {
   publish({ type: "start", totalSeconds: Math.max(1, getTotalSeconds()), message: els.message.value.trim() });
 });
 document.querySelector("#stopButton").addEventListener("click", () => publish({ type: "stop" }));
+document.querySelector("#interruptButton").addEventListener("click", () => {
+  publish({ type: "interrupt_stop", beeps: 10, message: "請停止" });
+});
 document.querySelector("#resetButton").addEventListener("click", () => publish({ type: "reset" }));
 document.querySelector("#sendMessageButton").addEventListener("click", () => {
   publish({ type: "message", message: els.message.value.trim() || "請注意倒數時間" });

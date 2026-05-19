@@ -61,6 +61,7 @@ clock/mqtt.html?mqtt=wss://broker.emqx.io:8084/mqtt&topic=jj/countdown
 ```json
 { "type": "start", "totalSeconds": 600 }
 { "type": "stop" }
+{ "type": "interrupt_stop", "beeps": 10, "message": "請停止" }
 { "type": "reset" }
 { "type": "message", "message": "傳送的信息" }
 ```

@@ -447,6 +447,19 @@ h1 {
   color: var(--green);
 }
 
+.design-credit {
+  position: fixed;
+  top: 12px;
+  left: 14px;
+  z-index: 5;
+  color: rgba(209, 209, 209, 0.72);
+  font-size: clamp(11px, 1.5vw, 16px);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+  text-transform: uppercase;
+}
+
 .install-button {
   position: fixed;
   top: 10px;
