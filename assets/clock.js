@@ -85,6 +85,13 @@ function publishStatus(force = false) {
   state.client.publish(state.statusTopic, payload, { qos: 0, retain: true });
 }
 
+function decodeMessagePayload(message) {
+  if (typeof message === "string") return message;
+  if (message instanceof ArrayBuffer) return new TextDecoder().decode(new Uint8Array(message));
+  if (ArrayBuffer.isView(message)) return new TextDecoder().decode(message);
+  return String(message ?? "");
+}
+
 function updateTitle() {
   els.title.textContent = `倒數時間總計 ${formatTime(state.totalSeconds)}`;
 }
@@ -299,7 +306,7 @@ function handleCommand(payload) {
 }
 
 function parseMessage(message) {
-  const text = new TextDecoder().decode(message);
+  const text = decodeMessagePayload(message);
   try {
     return JSON.parse(text);
   } catch {

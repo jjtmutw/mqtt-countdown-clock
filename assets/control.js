@@ -55,11 +55,18 @@ function setDisplayClock(value, stale = false) {
   els.displayClock.classList.toggle("stale", stale);
 }
 
+function decodeMessagePayload(message) {
+  if (typeof message === "string") return message;
+  if (message instanceof ArrayBuffer) return new TextDecoder().decode(new Uint8Array(message));
+  if (ArrayBuffer.isView(message)) return new TextDecoder().decode(message);
+  return String(message ?? "");
+}
+
 function handleIncomingMessage(topic, message) {
   if (topic !== state.displayStatusTopic) return;
 
   try {
-    const payload = JSON.parse(new TextDecoder().decode(message));
+    const payload = JSON.parse(decodeMessagePayload(message));
     if (payload?.type !== "status") return;
     setDisplayClock(formatDisplayTime(payload.remainingSeconds), false);
     state.displayLastSeenAt = Date.now();
