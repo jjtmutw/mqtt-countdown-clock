@@ -21,10 +21,6 @@
       <div>
         <div class="status-pill" id="connectionStatus">Offline</div>
         <p class="hero-note" id="brokerSummary">尚未連線</p>
-        <div class="display-clock-card" aria-live="polite">
-          <div class="display-clock-label">Display Time</div>
-          <div class="display-clock-value" id="displayClock">--:--:--</div>
-        </div>
       </div>
     </header>
 
@@ -76,6 +72,11 @@
 
       <div class="panel">
         <div class="panel-title">操控區塊 <span>Start / Stop / Reset</span></div>
+        <div class="display-clock-card display-clock-panel" aria-live="polite">
+          <div class="display-clock-label">Display Time</div>
+          <div class="display-clock-value" id="displayClock">--:--:--</div>
+        </div>
+        <div style="height: 12px"></div>
         <div class="button-grid">
           <button class="primary" id="startButton">開始倒數</button>
           <button class="danger" id="stopButton">停止倒數</button>
