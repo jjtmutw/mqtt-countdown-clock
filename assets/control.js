@@ -2,6 +2,7 @@ const STORAGE_KEY = "mqtt-countdown-control-v1";
 
 const els = {
   status: document.querySelector("#connectionStatus"),
+  displayClock: document.querySelector("#displayClock"),
   brokerSummary: document.querySelector("#brokerSummary"),
   broker: document.querySelector("#brokerInput"),
   username: document.querySelector("#usernameInput"),
@@ -22,7 +23,9 @@ const els = {
 
 const state = {
   client: null,
-  connected: false
+  connected: false,
+  displayStatusTopic: "",
+  displayLastSeenAt: 0
 };
 
 function normalizeBroker(value) {
@@ -32,6 +35,37 @@ function normalizeBroker(value) {
   if (/\/mqtt$/i.test(raw)) return `ws://${raw}`;
   if (raw.includes(":")) return `ws://${raw}`;
   return `ws://${raw}:9001`;
+}
+
+function getDisplayStatusTopic(topic) {
+  return `${topic}/status`;
+}
+
+function formatDisplayTime(totalSeconds) {
+  const safe = Math.max(0, Math.min(359999, Number.parseInt(totalSeconds, 10) || 0));
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const seconds = safe % 60;
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
+function setDisplayClock(value, stale = false) {
+  if (!els.displayClock) return;
+  els.displayClock.textContent = value;
+  els.displayClock.classList.toggle("stale", stale);
+}
+
+function handleIncomingMessage(topic, message) {
+  if (topic !== state.displayStatusTopic) return;
+
+  try {
+    const payload = JSON.parse(new TextDecoder().decode(message));
+    if (payload?.type !== "status") return;
+    setDisplayClock(formatDisplayTime(payload.remainingSeconds), false);
+    state.displayLastSeenAt = Date.now();
+  } catch {
+    // Ignore non-JSON status payloads.
+  }
 }
 
 function loadSettings() {
@@ -134,6 +168,7 @@ function connect() {
   saveSettings();
   const brokerUrl = normalizeBroker(els.broker.value);
   const topic = els.topic.value.trim() || "jj/countdown";
+  const statusTopic = getDisplayStatusTopic(topic);
 
   if (!brokerUrl) {
     appendLog(els.connectionLog, "請輸入 MQTT 伺服器位址。");
@@ -149,6 +184,10 @@ function connect() {
     state.client.end(true);
   }
 
+  state.displayStatusTopic = statusTopic;
+  state.displayLastSeenAt = 0;
+  setDisplayClock("--:--:--", true);
+
   appendLog(els.connectionLog, `連線中：${brokerUrl}`);
   setConnected(false, "連線中");
 
@@ -163,8 +202,13 @@ function connect() {
 
   state.client.on("connect", () => {
     setConnected(true, `${brokerUrl} / ${topic}`);
+    state.client.subscribe(statusTopic, { qos: 0 });
     appendLog(els.connectionLog, `已連線，控制 topic：${topic}`);
     updateQr();
+  });
+
+  state.client.on("message", (receivedTopic, message) => {
+    handleIncomingMessage(receivedTopic, message);
   });
 
   state.client.on("reconnect", () => {
@@ -233,3 +277,8 @@ document.querySelector("#refreshQrButton").addEventListener("click", updateQr);
 
 loadSettings();
 updateQr();
+setDisplayClock("--:--:--", true);
+window.setInterval(() => {
+  if (!els.displayClock || !state.displayLastSeenAt) return;
+  els.displayClock.classList.toggle("stale", Date.now() - state.displayLastSeenAt > 4000);
+}, 1000);

@@ -11,6 +11,8 @@ const els = {
 
 const state = {
   client: null,
+  topic: "",
+  statusTopic: "",
   totalSeconds: 600,
   remainingSeconds: 600,
   running: false,
@@ -60,6 +62,27 @@ function formatTime(totalSeconds) {
   const minutes = Math.floor((safe % 3600) / 60);
   const seconds = safe % 60;
   return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
+function getStatusTopic(topic) {
+  return `${topic}/status`;
+}
+
+function publishStatus(force = false) {
+  if (!state.client || !state.statusTopic) return;
+  if (!state.client.connected && !force) return;
+
+  const payload = JSON.stringify({
+    type: "status",
+    display: formatTime(state.remainingSeconds),
+    remainingSeconds: state.remainingSeconds,
+    totalSeconds: state.totalSeconds,
+    running: state.running,
+    message: els.message.textContent,
+    sentAt: new Date().toISOString()
+  });
+
+  state.client.publish(state.statusTopic, payload, { qos: 0, retain: true });
 }
 
 function updateTitle() {
@@ -202,6 +225,7 @@ function applyConfig(payload) {
   state.triggeredWarnings.clear();
   updateTitle();
   updateDigits();
+  publishStatus();
 }
 
 function startCountdown(payload = {}) {
@@ -219,6 +243,7 @@ function startCountdown(payload = {}) {
   state.triggeredWarnings.clear();
   updateTitle();
   updateDigits();
+  publishStatus();
 }
 
 function stopCountdown() {
@@ -261,9 +286,16 @@ function handleCommand(payload) {
   if (command === "interrupt_stop") {
     if (payload.message) els.message.textContent = payload.message;
     beepSequence(Math.max(1, Math.min(20, Number.parseInt(payload.beeps, 10) || 10)));
+    publishStatus();
   }
   if (command === "reset") resetCountdown();
-  if (command === "message" && payload.message) els.message.textContent = payload.message;
+  if (command === "message" && payload.message) {
+    els.message.textContent = payload.message;
+    publishStatus();
+  }
+  if (command === "stop" || command === "resume" || command === "reset") {
+    publishStatus();
+  }
 }
 
 function parseMessage(message) {
@@ -293,16 +325,20 @@ function tick() {
   state.remainingSeconds = Math.max(0, state.remainingSeconds - elapsed);
   checkWarnings();
   updateDigits();
+  publishStatus();
   if (state.remainingSeconds <= 0) {
     state.running = false;
     els.message.textContent = "時間到";
     beepSequence(state.finishBeeps);
+    publishStatus();
   }
 }
 
 function connect() {
   const brokerUrl = normalizeBroker(params.get("mqtt"));
   const topic = params.get("topic") || "jj/countdown";
+  state.topic = topic;
+  state.statusTopic = getStatusTopic(topic);
 
   if (!window.mqtt) {
     setStatus(false, "MQTT CDN Failed");
@@ -322,6 +358,7 @@ function connect() {
   state.client.on("connect", () => {
     setStatus(true, "Online");
     state.client.subscribe(topic, { qos: 0 });
+    publishStatus(true);
     els.message.textContent = `已連線 ${topic}`;
   });
 
