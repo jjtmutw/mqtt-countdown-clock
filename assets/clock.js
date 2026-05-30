@@ -11,8 +11,6 @@ const els = {
 
 const state = {
   client: null,
-  topic: "",
-  statusTopic: "",
   totalSeconds: 600,
   remainingSeconds: 600,
   running: false,
@@ -64,36 +62,8 @@ function formatTime(totalSeconds) {
   return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
 }
 
-function getStatusTopic(topic) {
-  return `${topic}/status`;
-}
-
-function publishStatus(force = false) {
-  if (!state.client || !state.statusTopic) return;
-  if (!state.client.connected && !force) return;
-
-  const payload = JSON.stringify({
-    type: "status",
-    display: formatTime(state.remainingSeconds),
-    remainingSeconds: state.remainingSeconds,
-    totalSeconds: state.totalSeconds,
-    running: state.running,
-    message: els.message.textContent,
-    sentAt: new Date().toISOString()
-  });
-
-  state.client.publish(state.statusTopic, payload, { qos: 0, retain: true });
-}
-
-function decodeMessagePayload(message) {
-  if (typeof message === "string") return message;
-  if (message instanceof ArrayBuffer) return new TextDecoder().decode(new Uint8Array(message));
-  if (ArrayBuffer.isView(message)) return new TextDecoder().decode(message);
-  return String(message ?? "");
-}
-
 function updateTitle() {
-  els.title.textContent = `倒數時間總計 ${formatTime(state.totalSeconds)}`;
+  els.title.textContent = `?????? ${formatTime(state.totalSeconds)}`;
 }
 
 function updateDigits() {
@@ -122,7 +92,7 @@ async function requestDisplayMode() {
   if (state.installPrompt && !isStandaloneDisplay()) {
     await state.installPrompt.prompt();
     state.installPrompt = null;
-    els.installButton.textContent = "全螢幕";
+    els.installButton.textContent = "???";
     return;
   }
 
@@ -149,12 +119,12 @@ async function lockLandscapeOrientation() {
 function setupPwaMode() {
   if (isStandaloneDisplay()) {
     document.documentElement.classList.add("is-standalone");
-    els.installButton.textContent = "全螢幕";
+    els.installButton.textContent = "???";
     return;
   }
 
   if (isMobileViewport()) {
-    els.installButton.textContent = "加入主畫面";
+    els.installButton.textContent = "?????";
   }
 }
 
@@ -186,19 +156,62 @@ function ensureAudio() {
   return state.audioContext;
 }
 
-function playTone(startTime, duration = 0.13) {
+function playTone(startTime, duration = 0.16) {
   const context = ensureAudio();
   if (!context) return;
-  const oscillator = context.createOscillator();
-  const gain = context.createGain();
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(930, startTime);
-  gain.gain.setValueAtTime(0.0001, startTime);
-  gain.gain.exponentialRampToValueAtTime(0.42, startTime + 0.012);
-  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-  oscillator.connect(gain).connect(context.destination);
-  oscillator.start(startTime);
-  oscillator.stop(startTime + duration + 0.02);
+  const masterGain = context.createGain();
+  const compressor = context.createDynamicsCompressor();
+  const highTone = context.createOscillator();
+  const biteTone = context.createOscillator();
+  const noiseSource = context.createBufferSource();
+  const noiseFilter = context.createBiquadFilter();
+  const noiseGain = context.createGain();
+  const sampleCount = Math.max(1, Math.floor(context.sampleRate * duration));
+  const noiseBuffer = context.createBuffer(1, sampleCount, context.sampleRate);
+  const noiseData = noiseBuffer.getChannelData(0);
+
+  for (let index = 0; index < sampleCount; index += 1) {
+    noiseData[index] = Math.random() * 2 - 1;
+  }
+
+  highTone.type = "square";
+  highTone.frequency.setValueAtTime(1760, startTime);
+  highTone.frequency.linearRampToValueAtTime(1980, startTime + duration * 0.35);
+  biteTone.type = "sawtooth";
+  biteTone.frequency.setValueAtTime(1180, startTime);
+  biteTone.detune.setValueAtTime(18, startTime);
+
+  noiseSource.buffer = noiseBuffer;
+  noiseFilter.type = "bandpass";
+  noiseFilter.frequency.setValueAtTime(3200, startTime);
+  noiseFilter.Q.setValueAtTime(4.5, startTime);
+
+  compressor.threshold.setValueAtTime(-16, startTime);
+  compressor.knee.setValueAtTime(2, startTime);
+  compressor.ratio.setValueAtTime(12, startTime);
+  compressor.attack.setValueAtTime(0.001, startTime);
+  compressor.release.setValueAtTime(0.04, startTime);
+
+  masterGain.gain.setValueAtTime(0.0001, startTime);
+  masterGain.gain.exponentialRampToValueAtTime(0.82, startTime + 0.006);
+  masterGain.gain.setValueAtTime(0.82, startTime + duration * 0.72);
+  masterGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+  noiseGain.gain.setValueAtTime(0.0001, startTime);
+  noiseGain.gain.exponentialRampToValueAtTime(0.26, startTime + 0.004);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration * 0.62);
+
+  highTone.connect(masterGain);
+  biteTone.connect(masterGain);
+  noiseSource.connect(noiseFilter).connect(noiseGain).connect(masterGain);
+  masterGain.connect(compressor).connect(context.destination);
+
+  highTone.start(startTime);
+  biteTone.start(startTime);
+  noiseSource.start(startTime);
+  highTone.stop(startTime + duration + 0.02);
+  biteTone.stop(startTime + duration + 0.02);
+  noiseSource.stop(startTime + duration + 0.02);
 }
 
 function beepSequence(count) {
@@ -206,8 +219,40 @@ function beepSequence(count) {
   if (!context) return;
   const now = context.currentTime + 0.04;
   for (let index = 0; index < count; index += 1) {
-    playTone(now + index * 0.24);
+    playTone(now + index * 0.19);
   }
+}
+
+function getChineseVoice() {
+  if (!("speechSynthesis" in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  return voices.find((voice) => /zh[-_](TW|Hant|HK)/i.test(voice.lang)) ||
+    voices.find((voice) => /^zh/i.test(voice.lang)) ||
+    null;
+}
+
+function speakMessage(text) {
+  const message = (text || els.message.textContent || "???").trim();
+  if (!message) return;
+  els.message.textContent = message;
+
+  if (!("speechSynthesis" in window) || !window.SpeechSynthesisUtterance) {
+    beepSequence(3);
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+  beepSequence(2);
+
+  const utterance = new SpeechSynthesisUtterance(message);
+  const voice = getChineseVoice();
+  utterance.lang = voice?.lang || "zh-TW";
+  utterance.voice = voice;
+  utterance.volume = 1;
+  utterance.rate = 0.95;
+  utterance.pitch = 1.12;
+
+  window.speechSynthesis.speak(utterance);
 }
 
 function applyConfig(payload) {
@@ -232,7 +277,6 @@ function applyConfig(payload) {
   state.triggeredWarnings.clear();
   updateTitle();
   updateDigits();
-  publishStatus();
 }
 
 function startCountdown(payload = {}) {
@@ -250,23 +294,22 @@ function startCountdown(payload = {}) {
   state.triggeredWarnings.clear();
   updateTitle();
   updateDigits();
-  publishStatus();
 }
 
 function stopCountdown() {
   state.running = false;
-  els.message.textContent = "倒數已停止";
+  els.message.textContent = "?????";
 }
 
 function resumeCountdown() {
   if (state.remainingSeconds <= 0) {
-    els.message.textContent = "時間已到";
+    els.message.textContent = "????";
     updateDigits();
     return;
   }
   state.running = true;
   state.lastTickAt = performance.now();
-  els.message.textContent = "倒數接續中";
+  els.message.textContent = "?????";
   updateDigits();
 }
 
@@ -274,7 +317,7 @@ function resetCountdown() {
   state.running = false;
   state.remainingSeconds = state.totalSeconds;
   state.triggeredWarnings.clear();
-  els.message.textContent = "等待倒數命令";
+  els.message.textContent = "??????";
   updateDigits();
 }
 
@@ -293,20 +336,14 @@ function handleCommand(payload) {
   if (command === "interrupt_stop") {
     if (payload.message) els.message.textContent = payload.message;
     beepSequence(Math.max(1, Math.min(20, Number.parseInt(payload.beeps, 10) || 10)));
-    publishStatus();
   }
   if (command === "reset") resetCountdown();
-  if (command === "message" && payload.message) {
-    els.message.textContent = payload.message;
-    publishStatus();
-  }
-  if (command === "stop" || command === "resume" || command === "reset") {
-    publishStatus();
-  }
+  if (command === "message" && payload.message) els.message.textContent = payload.message;
+  if ((command === "speak" || command === "speech") && payload.message) speakMessage(payload.message);
 }
 
 function parseMessage(message) {
-  const text = decodeMessagePayload(message);
+  const text = new TextDecoder().decode(message);
   try {
     return JSON.parse(text);
   } catch {
@@ -332,24 +369,20 @@ function tick() {
   state.remainingSeconds = Math.max(0, state.remainingSeconds - elapsed);
   checkWarnings();
   updateDigits();
-  publishStatus();
   if (state.remainingSeconds <= 0) {
     state.running = false;
-    els.message.textContent = "時間到";
+    els.message.textContent = "???";
     beepSequence(state.finishBeeps);
-    publishStatus();
   }
 }
 
 function connect() {
   const brokerUrl = normalizeBroker(params.get("mqtt"));
   const topic = params.get("topic") || "jj/countdown";
-  state.topic = topic;
-  state.statusTopic = getStatusTopic(topic);
 
   if (!window.mqtt) {
     setStatus(false, "MQTT CDN Failed");
-    els.message.textContent = "mqtt.js 尚未載入";
+    els.message.textContent = "mqtt.js ????";
     return;
   }
 
@@ -365,8 +398,7 @@ function connect() {
   state.client.on("connect", () => {
     setStatus(true, "Online");
     state.client.subscribe(topic, { qos: 0 });
-    publishStatus(true);
-    els.message.textContent = `已連線 ${topic}`;
+    els.message.textContent = `??? ${topic}`;
   });
 
   state.client.on("message", (_topic, message) => {
@@ -379,6 +411,9 @@ function connect() {
 }
 
 document.addEventListener("pointerdown", ensureAudio, { once: true });
+document.addEventListener("pointerdown", () => {
+  if ("speechSynthesis" in window) window.speechSynthesis.getVoices();
+}, { once: true });
 document.addEventListener("keydown", ensureAudio, { once: true });
 els.installButton.addEventListener("click", requestDisplayMode);
 
@@ -386,13 +421,13 @@ window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   state.installPrompt = event;
   if (!isStandaloneDisplay()) {
-    els.installButton.textContent = "加入主畫面";
+    els.installButton.textContent = "?????";
   }
 });
 
 window.addEventListener("appinstalled", () => {
   state.installPrompt = null;
-  els.installButton.textContent = "全螢幕";
+  els.installButton.textContent = "???";
 });
 
 window.addEventListener("load", () => {

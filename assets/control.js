@@ -2,7 +2,6 @@ const STORAGE_KEY = "mqtt-countdown-control-v1";
 
 const els = {
   status: document.querySelector("#connectionStatus"),
-  displayClock: document.querySelector("#displayClock"),
   brokerSummary: document.querySelector("#brokerSummary"),
   broker: document.querySelector("#brokerInput"),
   username: document.querySelector("#usernameInput"),
@@ -23,9 +22,7 @@ const els = {
 
 const state = {
   client: null,
-  connected: false,
-  displayStatusTopic: "",
-  displayLastSeenAt: 0
+  connected: false
 };
 
 function normalizeBroker(value) {
@@ -35,44 +32,6 @@ function normalizeBroker(value) {
   if (/\/mqtt$/i.test(raw)) return `ws://${raw}`;
   if (raw.includes(":")) return `ws://${raw}`;
   return `ws://${raw}:9001`;
-}
-
-function getDisplayStatusTopic(topic) {
-  return `${topic}/status`;
-}
-
-function formatDisplayTime(totalSeconds) {
-  const safe = Math.max(0, Math.min(359999, Number.parseInt(totalSeconds, 10) || 0));
-  const hours = Math.floor(safe / 3600);
-  const minutes = Math.floor((safe % 3600) / 60);
-  const seconds = safe % 60;
-  return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
-}
-
-function setDisplayClock(value, stale = false) {
-  if (!els.displayClock) return;
-  els.displayClock.textContent = value;
-  els.displayClock.classList.toggle("stale", stale);
-}
-
-function decodeMessagePayload(message) {
-  if (typeof message === "string") return message;
-  if (message instanceof ArrayBuffer) return new TextDecoder().decode(new Uint8Array(message));
-  if (ArrayBuffer.isView(message)) return new TextDecoder().decode(message);
-  return String(message ?? "");
-}
-
-function handleIncomingMessage(topic, message) {
-  if (topic !== state.displayStatusTopic) return;
-
-  try {
-    const payload = JSON.parse(decodeMessagePayload(message));
-    if (payload?.type !== "status") return;
-    setDisplayClock(formatDisplayTime(payload.remainingSeconds), false);
-    state.displayLastSeenAt = Date.now();
-  } catch {
-    // Ignore non-JSON status payloads.
-  }
 }
 
 function loadSettings() {
@@ -119,7 +78,7 @@ function setConnected(connected, detail = "") {
   state.connected = connected;
   els.status.classList.toggle("online", connected);
   els.status.textContent = connected ? "Online" : "Offline";
-  els.brokerSummary.textContent = detail || (connected ? "MQTT 已連線" : "尚未連線");
+  els.brokerSummary.textContent = detail || (connected ? "MQTT ???" : "????");
 }
 
 function appendLog(target, text) {
@@ -148,7 +107,7 @@ function getConfigPayload() {
       }
     ],
     finishBeeps: 6,
-    message: els.message.value.trim() || "請注意倒數時間"
+    message: els.message.value.trim() || "???????"
   };
 }
 
@@ -161,13 +120,13 @@ function publish(payload) {
   });
 
   if (!state.client || !state.connected) {
-    appendLog(els.commandLog, `尚未連線，未送出：${body}`);
+    appendLog(els.commandLog, `?????????${body}`);
     return;
   }
 
   const retainedTypes = new Set(["config", "message"]);
   state.client.publish(topic, body, { qos: 0, retain: retainedTypes.has(payload.type) }, (error) => {
-    appendLog(els.commandLog, error ? `傳送失敗：${error.message}` : `已傳送到 ${topic}：${body}`);
+    appendLog(els.commandLog, error ? `?????${error.message}` : `???? ${topic}?${body}`);
   });
 }
 
@@ -175,15 +134,14 @@ function connect() {
   saveSettings();
   const brokerUrl = normalizeBroker(els.broker.value);
   const topic = els.topic.value.trim() || "jj/countdown";
-  const statusTopic = getDisplayStatusTopic(topic);
 
   if (!brokerUrl) {
-    appendLog(els.connectionLog, "請輸入 MQTT 伺服器位址。");
+    appendLog(els.connectionLog, "??? MQTT ??????");
     return;
   }
 
   if (!window.mqtt) {
-    appendLog(els.connectionLog, "mqtt.js 尚未載入，請確認網路可讀取 CDN。");
+    appendLog(els.connectionLog, "mqtt.js ????????????? CDN?");
     return;
   }
 
@@ -191,12 +149,8 @@ function connect() {
     state.client.end(true);
   }
 
-  state.displayStatusTopic = statusTopic;
-  state.displayLastSeenAt = 0;
-  setDisplayClock("--:--:--", true);
-
-  appendLog(els.connectionLog, `連線中：${brokerUrl}`);
-  setConnected(false, "連線中");
+  appendLog(els.connectionLog, `????${brokerUrl}`);
+  setConnected(false, "???");
 
   state.client = mqtt.connect(brokerUrl, {
     clientId: `countdown_control_${Math.random().toString(16).slice(2, 10)}`,
@@ -209,27 +163,22 @@ function connect() {
 
   state.client.on("connect", () => {
     setConnected(true, `${brokerUrl} / ${topic}`);
-    state.client.subscribe(statusTopic, { qos: 0 });
-    appendLog(els.connectionLog, `已連線，控制 topic：${topic}`);
+    appendLog(els.connectionLog, `?????? topic?${topic}`);
     updateQr();
   });
 
-  state.client.on("message", (receivedTopic, message) => {
-    handleIncomingMessage(receivedTopic, message);
-  });
-
   state.client.on("reconnect", () => {
-    setConnected(false, "重新連線中");
-    appendLog(els.connectionLog, "MQTT 正在重新連線。");
+    setConnected(false, "?????");
+    appendLog(els.connectionLog, "MQTT ???????");
   });
 
   state.client.on("error", (error) => {
-    setConnected(false, "連線錯誤");
-    appendLog(els.connectionLog, `錯誤：${error.message}`);
+    setConnected(false, "????");
+    appendLog(els.connectionLog, `???${error.message}`);
   });
 
   state.client.on("close", () => {
-    setConnected(false, "連線已關閉");
+    setConnected(false, "?????");
   });
 }
 
@@ -257,14 +206,18 @@ document.querySelector("#startButton").addEventListener("click", () => {
 });
 document.querySelector("#stopButton").addEventListener("click", () => publish({ type: "stop" }));
 document.querySelector("#resumeButton").addEventListener("click", () => {
-  publish({ type: "start", resume: true, message: "倒數接續中" });
+  publish({ type: "start", resume: true, message: "?????" });
 });
 document.querySelector("#interruptButton").addEventListener("click", () => {
-  publish({ type: "interrupt_stop", beeps: 10, message: "請停止" });
+  publish({ type: "interrupt_stop", beeps: 10, message: "???" });
 });
 document.querySelector("#resetButton").addEventListener("click", () => publish({ type: "reset" }));
 document.querySelector("#sendMessageButton").addEventListener("click", () => {
-  publish({ type: "message", message: els.message.value.trim() || "請注意倒數時間" });
+  publish({ type: "message", message: els.message.value.trim() || "???????" });
+});
+document.querySelector("#speakMessageButton").addEventListener("click", () => {
+  const message = els.message.value.trim() || "???????";
+  publish({ type: "speak", message });
 });
 document.querySelector("#refreshQrButton").addEventListener("click", updateQr);
 
@@ -284,8 +237,3 @@ document.querySelector("#refreshQrButton").addEventListener("click", updateQr);
 
 loadSettings();
 updateQr();
-setDisplayClock("--:--:--", true);
-window.setInterval(() => {
-  if (!els.displayClock || !state.displayLastSeenAt) return;
-  els.displayClock.classList.toggle("stale", Date.now() - state.displayLastSeenAt > 4000);
-}, 1000);
