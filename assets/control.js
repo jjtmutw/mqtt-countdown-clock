@@ -78,7 +78,7 @@ function setConnected(connected, detail = "") {
   state.connected = connected;
   els.status.classList.toggle("online", connected);
   els.status.textContent = connected ? "Online" : "Offline";
-  els.brokerSummary.textContent = detail || (connected ? "MQTT ???" : "????");
+  els.brokerSummary.textContent = detail || (connected ? "MQTT 已連線" : "尚未連線");
 }
 
 function appendLog(target, text) {
@@ -107,7 +107,7 @@ function getConfigPayload() {
       }
     ],
     finishBeeps: 6,
-    message: els.message.value.trim() || "???????"
+    message: els.message.value.trim() || "請注意倒數時間"
   };
 }
 
@@ -120,13 +120,13 @@ function publish(payload) {
   });
 
   if (!state.client || !state.connected) {
-    appendLog(els.commandLog, `?????????${body}`);
+    appendLog(els.commandLog, `尚未連線，未送出：${body}`);
     return;
   }
 
   const retainedTypes = new Set(["config", "message"]);
   state.client.publish(topic, body, { qos: 0, retain: retainedTypes.has(payload.type) }, (error) => {
-    appendLog(els.commandLog, error ? `?????${error.message}` : `???? ${topic}?${body}`);
+    appendLog(els.commandLog, error ? `傳送失敗：${error.message}` : `已傳送到 ${topic}：${body}`);
   });
 }
 
@@ -136,12 +136,12 @@ function connect() {
   const topic = els.topic.value.trim() || "jj/countdown";
 
   if (!brokerUrl) {
-    appendLog(els.connectionLog, "??? MQTT ??????");
+    appendLog(els.connectionLog, "請輸入 MQTT 伺服器位址。");
     return;
   }
 
   if (!window.mqtt) {
-    appendLog(els.connectionLog, "mqtt.js ????????????? CDN?");
+    appendLog(els.connectionLog, "mqtt.js 尚未載入，請確認網路可讀取 CDN。");
     return;
   }
 
@@ -149,8 +149,8 @@ function connect() {
     state.client.end(true);
   }
 
-  appendLog(els.connectionLog, `????${brokerUrl}`);
-  setConnected(false, "???");
+  appendLog(els.connectionLog, `連線中：${brokerUrl}`);
+  setConnected(false, "連線中");
 
   state.client = mqtt.connect(brokerUrl, {
     clientId: `countdown_control_${Math.random().toString(16).slice(2, 10)}`,
@@ -163,22 +163,22 @@ function connect() {
 
   state.client.on("connect", () => {
     setConnected(true, `${brokerUrl} / ${topic}`);
-    appendLog(els.connectionLog, `?????? topic?${topic}`);
+    appendLog(els.connectionLog, `已連線，控制 topic：${topic}`);
     updateQr();
   });
 
   state.client.on("reconnect", () => {
-    setConnected(false, "?????");
-    appendLog(els.connectionLog, "MQTT ???????");
+    setConnected(false, "重新連線中");
+    appendLog(els.connectionLog, "MQTT 正在重新連線。");
   });
 
   state.client.on("error", (error) => {
-    setConnected(false, "????");
-    appendLog(els.connectionLog, `???${error.message}`);
+    setConnected(false, "連線錯誤");
+    appendLog(els.connectionLog, `錯誤：${error.message}`);
   });
 
   state.client.on("close", () => {
-    setConnected(false, "?????");
+    setConnected(false, "連線已關閉");
   });
 }
 
@@ -206,17 +206,17 @@ document.querySelector("#startButton").addEventListener("click", () => {
 });
 document.querySelector("#stopButton").addEventListener("click", () => publish({ type: "stop" }));
 document.querySelector("#resumeButton").addEventListener("click", () => {
-  publish({ type: "start", resume: true, message: "?????" });
+  publish({ type: "start", resume: true, message: "倒數接續中" });
 });
 document.querySelector("#interruptButton").addEventListener("click", () => {
-  publish({ type: "interrupt_stop", beeps: 10, message: "???" });
+  publish({ type: "interrupt_stop", beeps: 10, message: "請停止" });
 });
 document.querySelector("#resetButton").addEventListener("click", () => publish({ type: "reset" }));
 document.querySelector("#sendMessageButton").addEventListener("click", () => {
-  publish({ type: "message", message: els.message.value.trim() || "???????" });
+  publish({ type: "message", message: els.message.value.trim() || "請注意倒數時間" });
 });
 document.querySelector("#speakMessageButton").addEventListener("click", () => {
-  const message = els.message.value.trim() || "???????";
+  const message = els.message.value.trim() || "請注意倒數時間";
   publish({ type: "speak", message });
 });
 document.querySelector("#refreshQrButton").addEventListener("click", updateQr);

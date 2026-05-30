@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#030a0f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="??????">
-  <title>???????</title>
+  <meta name="apple-mobile-web-app-title" content="倒數計時控制">
+  <title>倒數計時控制端</title>
   <link rel="stylesheet" href="./assets/styles.css?v=3">
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
@@ -17,88 +17,88 @@
     <header class="hero-bar">
       <div>
         <div class="eyebrow">MQTT COUNTDOWN CONTROL</div>
-        <h1>???????</h1>
+        <h1>倒數計時控制端</h1>
       </div>
       <div>
         <div class="status-pill" id="connectionStatus">Offline</div>
-        <p class="hero-note" id="brokerSummary">????</p>
+        <p class="hero-note" id="brokerSummary">尚未連線</p>
       </div>
     </header>
 
     <section class="dashboard-grid">
       <div class="panel">
-        <div class="panel-title">???? <span>Broker / Topic</span></div>
+        <div class="panel-title">連線設定 <span>Broker / Topic</span></div>
         <div class="form-grid">
-          <label class="span-2">MQTT ??? WebSocket ??? IP
+          <label class="span-2">MQTT 伺服器 WebSocket 位址或 IP
             <input id="brokerInput" value="wss://broker.emqx.io:8084/mqtt" autocomplete="off">
           </label>
-          <label>MQTT ??
-            <input id="usernameInput" autocomplete="username" placeholder="??">
+          <label>MQTT 帳號
+            <input id="usernameInput" autocomplete="username" placeholder="選填">
           </label>
-          <label>MQTT ??
-            <input id="passwordInput" type="password" autocomplete="current-password" placeholder="??">
+          <label>MQTT 密碼
+            <input id="passwordInput" type="password" autocomplete="current-password" placeholder="選填">
           </label>
           <label class="span-2">Topic
             <input id="topicInput" value="jj/countdown" autocomplete="off">
           </label>
-          <button class="primary span-2" id="connectButton">????</button>
+          <button class="primary span-2" id="connectButton">立即連線</button>
         </div>
-        <div class="log" id="connectionLog">????????? IP?????? ws://IP:9001?</div>
+        <div class="log" id="connectionLog">準備連線。若只輸入 IP，系統會使用 ws://IP:9001。</div>
       </div>
 
       <div class="panel">
-        <div class="panel-title">?????? <span>?????</span></div>
+        <div class="panel-title">時間倒數設定 <span>提醒與蜂鳴</span></div>
         <div class="form-grid">
-          <label>??? ??
+          <label>總時間 分鐘
             <input id="totalMinutesInput" type="number" min="0" step="1" value="10">
           </label>
-          <label>??? ?
+          <label>總時間 秒
             <input id="totalSecondsInput" type="number" min="0" max="59" step="1" value="0">
           </label>
-          <label>??? ????
+          <label>提醒一 剩餘秒數
             <input id="warningOneSecondsInput" type="number" min="1" step="1" value="120">
           </label>
-          <label>??? B ???
+          <label>提醒一 B 聲次數
             <input id="warningOneBeepsInput" type="number" min="1" max="10" step="1" value="2">
           </label>
-          <label>??? ????
+          <label>提醒二 剩餘秒數
             <input id="warningTwoSecondsInput" type="number" min="1" step="1" value="60">
           </label>
-          <label>??? B ???
+          <label>提醒二 B 聲次數
             <input id="warningTwoBeepsInput" type="number" min="1" max="10" step="1" value="3">
           </label>
-          <button class="primary span-2" id="sendConfigButton">???????</button>
+          <button class="primary span-2" id="sendConfigButton">更新新設定參數</button>
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-title">???? <span>Start / Stop / Reset</span></div>
+        <div class="panel-title">操控區塊 <span>Start / Stop / Reset</span></div>
         <div class="button-grid">
-          <button class="primary" id="startButton">????</button>
-          <button class="danger" id="stopButton">????</button>
-          <button class="primary" id="resumeButton">????</button>
-          <button class="danger" id="interruptButton">????10?</button>
-          <button class="ghost" id="resetButton">????</button>
+          <button class="primary" id="startButton">開始倒數</button>
+          <button class="danger" id="stopButton">停止倒數</button>
+          <button class="primary" id="resumeButton">接續倒數</button>
+          <button class="danger" id="interruptButton">發出嗶聲10次</button>
+          <button class="ghost" id="resetButton">復原設定</button>
         </div>
         <div style="height: 14px"></div>
-        <label>????
-          <textarea id="messageInput">???????</textarea>
+        <label>信息內容
+          <textarea id="messageInput">請注意倒數時間</textarea>
         </label>
         <div style="height: 10px"></div>
-        <button id="sendMessageButton">????</button>
+        <button id="sendMessageButton">傳送信息</button>
         <div style="height: 10px"></div>
-        <button class="primary" id="speakMessageButton">????</button>
-        <div class="log" id="commandLog">???????</div>
+        <button class="primary" id="speakMessageButton">語音播放</button>
+        <div class="log" id="commandLog">尚未傳送命令。</div>
       </div>
 
       <div class="panel">
-        <div class="panel-title">??????? <span>QR Code</span></div>
+        <div class="panel-title">平板顯示端網址 <span>QR Code</span></div>
         <div class="qr-wrap">
-          <img id="qrImage" alt="????? QR Code">
+          <img id="qrImage" alt="平板顯示端 QR Code">
           <div>
             <div class="url-box" id="displayUrlBox"></div>
             <div style="height: 10px"></div>
-            <button class="ghost" id="refreshQrButton">?? QRCode</button>
+            <button class="ghost" id="refreshQrButton">更新 QRCode</button>
           </div>
         </div>
       </div>

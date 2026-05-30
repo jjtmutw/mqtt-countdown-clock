@@ -63,7 +63,7 @@ function formatTime(totalSeconds) {
 }
 
 function updateTitle() {
-  els.title.textContent = `?????? ${formatTime(state.totalSeconds)}`;
+  els.title.textContent = `倒數時間總計 ${formatTime(state.totalSeconds)}`;
 }
 
 function updateDigits() {
@@ -92,7 +92,7 @@ async function requestDisplayMode() {
   if (state.installPrompt && !isStandaloneDisplay()) {
     await state.installPrompt.prompt();
     state.installPrompt = null;
-    els.installButton.textContent = "???";
+    els.installButton.textContent = "全螢幕";
     return;
   }
 
@@ -119,12 +119,12 @@ async function lockLandscapeOrientation() {
 function setupPwaMode() {
   if (isStandaloneDisplay()) {
     document.documentElement.classList.add("is-standalone");
-    els.installButton.textContent = "???";
+    els.installButton.textContent = "全螢幕";
     return;
   }
 
   if (isMobileViewport()) {
-    els.installButton.textContent = "?????";
+    els.installButton.textContent = "加入主畫面";
   }
 }
 
@@ -232,7 +232,7 @@ function getChineseVoice() {
 }
 
 function speakMessage(text) {
-  const message = (text || els.message.textContent || "???").trim();
+  const message = (text || els.message.textContent || "請注意").trim();
   if (!message) return;
   els.message.textContent = message;
 
@@ -298,18 +298,18 @@ function startCountdown(payload = {}) {
 
 function stopCountdown() {
   state.running = false;
-  els.message.textContent = "?????";
+  els.message.textContent = "倒數已停止";
 }
 
 function resumeCountdown() {
   if (state.remainingSeconds <= 0) {
-    els.message.textContent = "????";
+    els.message.textContent = "時間已到";
     updateDigits();
     return;
   }
   state.running = true;
   state.lastTickAt = performance.now();
-  els.message.textContent = "?????";
+  els.message.textContent = "倒數接續中";
   updateDigits();
 }
 
@@ -317,7 +317,7 @@ function resetCountdown() {
   state.running = false;
   state.remainingSeconds = state.totalSeconds;
   state.triggeredWarnings.clear();
-  els.message.textContent = "??????";
+  els.message.textContent = "等待倒數命令";
   updateDigits();
 }
 
@@ -371,7 +371,7 @@ function tick() {
   updateDigits();
   if (state.remainingSeconds <= 0) {
     state.running = false;
-    els.message.textContent = "???";
+    els.message.textContent = "時間到";
     beepSequence(state.finishBeeps);
   }
 }
@@ -382,7 +382,7 @@ function connect() {
 
   if (!window.mqtt) {
     setStatus(false, "MQTT CDN Failed");
-    els.message.textContent = "mqtt.js ????";
+    els.message.textContent = "mqtt.js 尚未載入";
     return;
   }
 
@@ -398,7 +398,7 @@ function connect() {
   state.client.on("connect", () => {
     setStatus(true, "Online");
     state.client.subscribe(topic, { qos: 0 });
-    els.message.textContent = `??? ${topic}`;
+    els.message.textContent = `已連線 ${topic}`;
   });
 
   state.client.on("message", (_topic, message) => {
@@ -421,13 +421,13 @@ window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   state.installPrompt = event;
   if (!isStandaloneDisplay()) {
-    els.installButton.textContent = "?????";
+    els.installButton.textContent = "加入主畫面";
   }
 });
 
 window.addEventListener("appinstalled", () => {
   state.installPrompt = null;
-  els.installButton.textContent = "???";
+  els.installButton.textContent = "全螢幕";
 });
 
 window.addEventListener("load", () => {
