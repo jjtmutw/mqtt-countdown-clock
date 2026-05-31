@@ -161,57 +161,33 @@ function playTone(startTime, duration = 0.16) {
   if (!context) return;
   const masterGain = context.createGain();
   const compressor = context.createDynamicsCompressor();
-  const highTone = context.createOscillator();
-  const biteTone = context.createOscillator();
-  const noiseSource = context.createBufferSource();
-  const noiseFilter = context.createBiquadFilter();
-  const noiseGain = context.createGain();
-  const sampleCount = Math.max(1, Math.floor(context.sampleRate * duration));
-  const noiseBuffer = context.createBuffer(1, sampleCount, context.sampleRate);
-  const noiseData = noiseBuffer.getChannelData(0);
-
-  for (let index = 0; index < sampleCount; index += 1) {
-    noiseData[index] = Math.random() * 2 - 1;
-  }
-
-  highTone.type = "square";
-  highTone.frequency.setValueAtTime(1760, startTime);
-  highTone.frequency.linearRampToValueAtTime(1980, startTime + duration * 0.35);
-  biteTone.type = "sawtooth";
-  biteTone.frequency.setValueAtTime(1180, startTime);
-  biteTone.detune.setValueAtTime(18, startTime);
-
-  noiseSource.buffer = noiseBuffer;
-  noiseFilter.type = "bandpass";
-  noiseFilter.frequency.setValueAtTime(3200, startTime);
-  noiseFilter.Q.setValueAtTime(4.5, startTime);
+  const tone = context.createOscillator();
+  const overtone = context.createOscillator();
 
   compressor.threshold.setValueAtTime(-16, startTime);
-  compressor.knee.setValueAtTime(2, startTime);
-  compressor.ratio.setValueAtTime(12, startTime);
-  compressor.attack.setValueAtTime(0.001, startTime);
-  compressor.release.setValueAtTime(0.04, startTime);
+  compressor.knee.setValueAtTime(4, startTime);
+  compressor.ratio.setValueAtTime(8, startTime);
+  compressor.attack.setValueAtTime(0.002, startTime);
+  compressor.release.setValueAtTime(0.06, startTime);
+
+  tone.type = "square";
+  tone.frequency.setValueAtTime(1040, startTime);
+  overtone.type = "square";
+  overtone.frequency.setValueAtTime(2080, startTime);
 
   masterGain.gain.setValueAtTime(0.0001, startTime);
-  masterGain.gain.exponentialRampToValueAtTime(0.82, startTime + 0.006);
-  masterGain.gain.setValueAtTime(0.82, startTime + duration * 0.72);
+  masterGain.gain.exponentialRampToValueAtTime(0.72, startTime + 0.008);
+  masterGain.gain.setValueAtTime(0.72, startTime + duration * 0.78);
   masterGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
 
-  noiseGain.gain.setValueAtTime(0.0001, startTime);
-  noiseGain.gain.exponentialRampToValueAtTime(0.26, startTime + 0.004);
-  noiseGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration * 0.62);
-
-  highTone.connect(masterGain);
-  biteTone.connect(masterGain);
-  noiseSource.connect(noiseFilter).connect(noiseGain).connect(masterGain);
+  tone.connect(masterGain);
+  overtone.connect(masterGain);
   masterGain.connect(compressor).connect(context.destination);
 
-  highTone.start(startTime);
-  biteTone.start(startTime);
-  noiseSource.start(startTime);
-  highTone.stop(startTime + duration + 0.02);
-  biteTone.stop(startTime + duration + 0.02);
-  noiseSource.stop(startTime + duration + 0.02);
+  tone.start(startTime);
+  overtone.start(startTime);
+  tone.stop(startTime + duration + 0.02);
+  overtone.stop(startTime + duration + 0.02);
 }
 
 function beepSequence(count) {
@@ -219,8 +195,18 @@ function beepSequence(count) {
   if (!context) return;
   const now = context.currentTime + 0.04;
   for (let index = 0; index < count; index += 1) {
-    playTone(now + index * 0.19);
+    playTone(now + index * 0.28);
   }
+}
+
+function speechIntroBeep() {
+  const context = ensureAudio();
+  if (!context) return 0;
+  const now = context.currentTime + 0.04;
+  playTone(now, 0.22);
+  playTone(now + 0.38, 0.22);
+  playTone(now + 0.76, 0.22);
+  return 1.05;
 }
 
 function getChineseVoice() {
@@ -242,7 +228,7 @@ function speakMessage(text) {
   }
 
   window.speechSynthesis.cancel();
-  beepSequence(2);
+  const speechDelay = speechIntroBeep();
 
   const utterance = new SpeechSynthesisUtterance(message);
   const voice = getChineseVoice();
@@ -252,7 +238,9 @@ function speakMessage(text) {
   utterance.rate = 0.95;
   utterance.pitch = 1.12;
 
-  window.speechSynthesis.speak(utterance);
+  window.setTimeout(() => {
+    window.speechSynthesis.speak(utterance);
+  }, speechDelay * 1000);
 }
 
 function applyConfig(payload) {
