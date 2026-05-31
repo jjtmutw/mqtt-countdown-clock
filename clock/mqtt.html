@@ -10,10 +10,37 @@
   <meta name="apple-mobile-web-app-title" content="倒數計時">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>倒數計時顯示端</title>
-  <link rel="manifest" href="../manifest.webmanifest">
+  <script>
+    (() => {
+      const manifest = {
+        name: "MQTT 倒數計時顯示端",
+        short_name: "倒數計時",
+        description: "以 MQTT 接收命令並用全螢幕翻頁時鐘顯示倒數時間。",
+        start_url: window.location.href,
+        scope: new URL("../", window.location.href).href,
+        display: "fullscreen",
+        orientation: "landscape",
+        background_color: "#202020",
+        theme_color: "#202020",
+        icons: [
+          {
+            src: new URL("../icon.svg", window.location.href).href,
+            sizes: "any",
+            type: "image/svg+xml",
+            purpose: "any maskable"
+          }
+        ]
+      };
+      const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+      const link = document.createElement("link");
+      link.rel = "manifest";
+      link.href = URL.createObjectURL(blob);
+      document.head.append(link);
+    })();
+  </script>
   <link rel="icon" href="../icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="../icon.svg">
-  <link rel="stylesheet" href="../assets/styles.css">
+  <link rel="stylesheet" href="../assets/styles.css?v=7">
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body class="clock-body">
@@ -36,6 +63,6 @@
       <div class="clock-message" id="clockMessage">等待倒數命令</div>
     </section>
   </main>
-  <script src="../assets/clock.js"></script>
+  <script src="../assets/clock.js?v=7"></script>
 </body>
 </html>
