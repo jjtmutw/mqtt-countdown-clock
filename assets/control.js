@@ -1,4 +1,6 @@
 const STORAGE_KEY = "mqtt-countdown-control-v1";
+const DEFAULT_MESSAGE = "請注意倒數計時時間!!";
+const PREVIOUS_DEFAULT_MESSAGE = "請注意倒數時間";
 
 const els = {
   status: document.querySelector("#connectionStatus"),
@@ -71,6 +73,9 @@ function handleIncomingMessage(topic, message) {
 function loadSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    if (saved.message === PREVIOUS_DEFAULT_MESSAGE) {
+      saved.message = DEFAULT_MESSAGE;
+    }
     Object.entries({
       broker: "broker",
       username: "username",
@@ -141,7 +146,7 @@ function getConfigPayload() {
       }
     ],
     finishBeeps: 6,
-    message: els.message.value.trim() || "請注意倒數時間"
+    message: els.message.value.trim() || DEFAULT_MESSAGE
   };
 }
 
@@ -256,10 +261,10 @@ document.querySelector("#interruptButton").addEventListener("click", () => {
 });
 document.querySelector("#resetButton").addEventListener("click", () => publish({ type: "reset" }));
 document.querySelector("#sendMessageButton").addEventListener("click", () => {
-  publish({ type: "message", message: els.message.value.trim() || "請注意倒數時間" });
+  publish({ type: "message", message: els.message.value.trim() || DEFAULT_MESSAGE });
 });
 document.querySelector("#speakMessageButton").addEventListener("click", () => {
-  const message = els.message.value.trim() || "請注意倒數時間";
+  const message = els.message.value.trim() || DEFAULT_MESSAGE;
   publish({ type: "speak", message });
 });
 document.querySelector("#refreshQrButton").addEventListener("click", updateQr);
