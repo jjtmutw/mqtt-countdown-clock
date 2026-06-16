@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "mqtt-countdown-clock-shell-v7";
+const CACHE_NAME = "mqtt-countdown-clock-shell-v8";
 const SHELL_FILES = [
   "./",
   "./index.html",
